@@ -23,6 +23,9 @@ def _row_to_job(row: asyncpg.Record, playlist_base: str = "/streams") -> JobRead
         status=JobStatus(row["status"]),
         playlist_url=playlist_url,
         loop=bool(row["loop"]),
+        realtime=bool(row["realtime"]),
+        video_bitrate=row["video_bitrate"],
+        video_height=row["video_height"],
         start_at=row["start_at"],
         end_at=row["end_at"],
         created_at=row["created_at"],
@@ -44,6 +47,9 @@ class Repository:
         mode: StreamMode,
         ttl_seconds: int,
         loop: bool = False,
+        realtime: bool = True,
+        video_bitrate: str | None = None,
+        video_height: int | None = None,
         start_at: datetime | None = None,
         end_at: datetime | None = None,
     ) -> JobRead:
@@ -56,8 +62,10 @@ class Repository:
         row = await self._pool.fetchrow(
             """
             INSERT INTO jobs (source_url, mode, ttl_seconds, status,
-                              loop, start_at, end_at)
-            VALUES ($1, $2::stream_mode, $3, $4::job_status, $5, $6, $7)
+                              loop, realtime, video_bitrate, video_height,
+                              start_at, end_at)
+            VALUES ($1, $2::stream_mode, $3, $4::job_status,
+                    $5, $6, $7, $8, $9, $10)
             RETURNING *
             """,
             source_url,
@@ -65,6 +73,9 @@ class Repository:
             ttl_seconds,
             initial_status,
             loop,
+            realtime,
+            video_bitrate,
+            video_height,
             start_at,
             end_at,
         )

@@ -14,6 +14,9 @@ CREATE TABLE IF NOT EXISTS jobs (
   status           job_status NOT NULL DEFAULT 'queued',
   ttl_seconds      INTEGER NOT NULL,
   loop             BOOLEAN NOT NULL DEFAULT FALSE,
+  realtime         BOOLEAN NOT NULL DEFAULT TRUE,
+  video_bitrate    TEXT,
+  video_height     INTEGER,
   start_at         TIMESTAMPTZ,
   end_at           TIMESTAMPTZ,
   created_at       TIMESTAMPTZ NOT NULL DEFAULT now(),
@@ -28,6 +31,9 @@ CREATE TABLE IF NOT EXISTS jobs (
 
 -- Idempotent additive migrations for existing installs.
 ALTER TABLE jobs ADD COLUMN IF NOT EXISTS loop     BOOLEAN NOT NULL DEFAULT FALSE;
+ALTER TABLE jobs ADD COLUMN IF NOT EXISTS realtime BOOLEAN NOT NULL DEFAULT TRUE;
+ALTER TABLE jobs ADD COLUMN IF NOT EXISTS video_bitrate TEXT;
+ALTER TABLE jobs ADD COLUMN IF NOT EXISTS video_height  INTEGER;
 ALTER TABLE jobs ADD COLUMN IF NOT EXISTS start_at TIMESTAMPTZ;
 ALTER TABLE jobs ADD COLUMN IF NOT EXISTS end_at   TIMESTAMPTZ;
 

@@ -77,6 +77,88 @@ def test_loop_adds_stream_loop_before_input():
     assert sl_idx < i_idx
 
 
+def test_realtime_false_omits_dash_re():
+    argv = build_ffmpeg_argv(
+        "https://example.com/a.mp4",
+        "/tmp/out",
+        StreamMode.VOD,
+        _settings(),
+        realtime=False,
+    )
+    assert "-re" not in argv
+
+
+def test_realtime_default_true_includes_dash_re():
+    argv = build_ffmpeg_argv(
+        "https://example.com/a.mp4", "/tmp/out", StreamMode.VOD, _settings()
+    )
+    assert "-re" in argv
+
+
+def test_video_height_adds_scale_filter():
+    argv = build_ffmpeg_argv(
+        "https://example.com/a.mp4",
+        "/tmp/out",
+        StreamMode.VOD,
+        _settings(),
+        video_height=720,
+    )
+    vf_idx = argv.index("-vf")
+    assert argv[vf_idx + 1] == "scale=-2:720"
+
+
+def test_video_height_none_omits_scale_filter():
+    argv = build_ffmpeg_argv(
+        "https://example.com/a.mp4", "/tmp/out", StreamMode.VOD, _settings()
+    )
+    assert "-vf" not in argv
+
+
+def test_video_bitrate_sets_b_maxrate_bufsize():
+    argv = build_ffmpeg_argv(
+        "https://example.com/a.mp4",
+        "/tmp/out",
+        StreamMode.VOD,
+        _settings(),
+        video_bitrate="2M",
+    )
+    assert argv[argv.index("-b:v") + 1] == "2M"
+    assert argv[argv.index("-maxrate") + 1] == "2M"
+    assert argv[argv.index("-bufsize") + 1] == "4M"
+
+
+def test_video_bitrate_k_suffix_doubles_bufsize():
+    argv = build_ffmpeg_argv(
+        "https://example.com/a.mp4",
+        "/tmp/out",
+        StreamMode.VOD,
+        _settings(),
+        video_bitrate="2500k",
+    )
+    assert argv[argv.index("-bufsize") + 1] == "5000k"
+
+
+def test_video_bitrate_no_suffix_doubles_bufsize():
+    argv = build_ffmpeg_argv(
+        "https://example.com/a.mp4",
+        "/tmp/out",
+        StreamMode.VOD,
+        _settings(),
+        video_bitrate="800",
+    )
+    assert argv[argv.index("-b:v") + 1] == "800"
+    assert argv[argv.index("-bufsize") + 1] == "1600"
+
+
+def test_video_bitrate_none_omits_rate_control():
+    argv = build_ffmpeg_argv(
+        "https://example.com/a.mp4", "/tmp/out", StreamMode.VOD, _settings()
+    )
+    assert "-b:v" not in argv
+    assert "-maxrate" not in argv
+    assert "-bufsize" not in argv
+
+
 def test_loop_false_does_not_add_stream_loop():
     argv = build_ffmpeg_argv(
         "https://example.com/a.mp4",
