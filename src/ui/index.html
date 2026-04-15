@@ -306,12 +306,36 @@
         <option value="live">Live</option>
       </select>
       <input type="number" id="ttl" placeholder="TTL (s)" min="60" max="86400" />
+      <select id="videoHeight" title="Output height; width auto, aspect preserved">
+        <option value="">Source 해상도</option>
+        <option value="2160">2160p</option>
+        <option value="1440">1440p</option>
+        <option value="1080">1080p</option>
+        <option value="720">720p</option>
+        <option value="480">480p</option>
+        <option value="360">360p</option>
+        <option value="240">240p</option>
+      </select>
+      <select id="videoBitrate" title="Target video bitrate (maxrate + 2x bufsize)">
+        <option value="">Source 비트레이트</option>
+        <option value="500k">500k</option>
+        <option value="1M">1M</option>
+        <option value="2M">2M</option>
+        <option value="3M">3M</option>
+        <option value="5M">5M</option>
+        <option value="8M">8M</option>
+        <option value="12M">12M</option>
+      </select>
       <button type="submit">Start</button>
     </form>
     <div class="loop-row">
       <label class="loop-check">
         <input type="checkbox" id="loop" disabled />
         <span>Loop (live 모드에서만)</span>
+      </label>
+      <label class="loop-check">
+        <input type="checkbox" id="realtime" checked />
+        <span title="ffmpeg -re: 1x 실시간 페이싱. 끄면 최대 속도로 트랜스코딩.">Realtime (-re)</span>
       </label>
       <div class="loop-window" id="loopWindow" hidden>
         <label>시작 <input type="datetime-local" id="startAt" /></label>
@@ -742,6 +766,7 @@
   // Loop form wiring — only enabled when mode=live.
   const modeSel = $("#mode");
   const loopChk = $("#loop");
+  const realtimeChk = $("#realtime");
   const loopWindow = $("#loopWindow");
   const startAtInput = $("#startAt");
   const endAtInput = $("#endAt");
@@ -769,8 +794,13 @@
     const source_url = $("#sourceUrl").value.trim();
     const mode = modeSel.value;
     const ttlRaw = $("#ttl").value;
+    const heightRaw = $("#videoHeight").value;
+    const bitrateRaw = $("#videoBitrate").value;
     const body = { source_url, mode };
     if (ttlRaw) body.ttl_seconds = parseInt(ttlRaw, 10);
+    if (heightRaw) body.video_height = parseInt(heightRaw, 10);
+    if (bitrateRaw) body.video_bitrate = bitrateRaw;
+    body.realtime = realtimeChk.checked;
     if (loopChk.checked) {
       body.loop = true;
       const startIso = toIsoOrNull(startAtInput.value);

@@ -94,6 +94,9 @@ async def lifespan(app: FastAPI):
                 bus=bus,
                 cancel_event=cancel_event,
                 loop=j.loop,
+                realtime=j.realtime,
+                video_bitrate=j.video_bitrate,
+                video_height=j.video_height,
                 end_at=j.end_at,
             )
         return _factory

@@ -176,6 +176,9 @@ async def run_job(
     bus: EventBus,
     cancel_event: asyncio.Event,
     loop: bool = False,
+    realtime: bool = True,
+    video_bitrate: str | None = None,
+    video_height: int | None = None,
     end_at=None,
 ) -> None:
     """Run a single transcoding job. Exceptions are caught and recorded as failures."""
@@ -183,12 +186,25 @@ async def run_job(
     output_dir = Path(settings.storage_dir) / str(job_id)
     output_dir.mkdir(parents=True, exist_ok=True)
 
-    argv = build_ffmpeg_argv(source_url, str(output_dir), mode, settings, loop=loop)
+    argv = build_ffmpeg_argv(
+        source_url,
+        str(output_dir),
+        mode,
+        settings,
+        loop=loop,
+        realtime=realtime,
+        video_bitrate=video_bitrate,
+        video_height=video_height,
+    )
     log.info(
-        "starting ffmpeg argv_len=%d mode=%s loop=%s end_at=%s",
+        "starting ffmpeg argv_len=%d mode=%s loop=%s realtime=%s "
+        "v_br=%s v_h=%s end_at=%s",
         len(argv),
         mode.value,
         loop,
+        realtime,
+        video_bitrate,
+        video_height,
         end_at,
     )
 

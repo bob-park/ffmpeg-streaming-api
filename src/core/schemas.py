@@ -1,8 +1,11 @@
+import re
 from datetime import datetime, timezone
 from enum import Enum
 from uuid import UUID
 
-from pydantic import BaseModel, Field, model_validator
+from pydantic import BaseModel, Field, field_validator, model_validator
+
+_BITRATE_RE = re.compile(r"^[1-9]\d{0,5}[kKmM]?$")
 
 
 class StreamMode(str, Enum):
@@ -30,8 +33,31 @@ class JobCreate(BaseModel):
     mode: StreamMode = StreamMode.VOD
     ttl_seconds: int | None = Field(default=None, ge=60, le=86400)
     loop: bool = False
+    realtime: bool = True
+    video_bitrate: str | None = Field(default=None, max_length=16)
+    video_height: int | None = Field(default=None, ge=144, le=4320)
     start_at: datetime | None = None
     end_at: datetime | None = None
+
+    @field_validator("video_bitrate")
+    @classmethod
+    def _check_bitrate(cls, v: str | None) -> str | None:
+        if v is None:
+            return None
+        if not _BITRATE_RE.match(v):
+            raise ValueError(
+                "video_bitrate must be digits with optional k/M suffix, e.g. '2500k' or '2M'"
+            )
+        return v
+
+    @field_validator("video_height")
+    @classmethod
+    def _check_height(cls, v: int | None) -> int | None:
+        if v is None:
+            return None
+        if v % 2 != 0:
+            raise ValueError("video_height must be even (H.264 yuv420p constraint)")
+        return v
 
     @model_validator(mode="after")
     def _check_loop_window(self) -> "JobCreate":
@@ -55,6 +81,9 @@ class JobRead(BaseModel):
     status: JobStatus
     playlist_url: str | None = None
     loop: bool = False
+    realtime: bool = True
+    video_bitrate: str | None = None
+    video_height: int | None = None
     start_at: datetime | None = None
     end_at: datetime | None = None
     created_at: datetime

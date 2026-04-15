@@ -67,6 +67,9 @@ async def create_job(
         payload.mode,
         ttl,
         loop=payload.loop,
+        realtime=payload.realtime,
+        video_bitrate=payload.video_bitrate,
+        video_height=payload.video_height,
         start_at=payload.start_at,
         end_at=payload.end_at,
     )
@@ -79,6 +82,7 @@ async def create_job(
                 "source_url": payload.source_url,
                 "mode": payload.mode.value,
                 "loop": payload.loop,
+                "realtime": payload.realtime,
             },
         )
     )
@@ -98,6 +102,9 @@ async def create_job(
             bus=bus,
             cancel_event=cancel_event,
             loop=payload.loop,
+            realtime=payload.realtime,
+            video_bitrate=payload.video_bitrate,
+            video_height=payload.video_height,
             end_at=payload.end_at,
         )
 
