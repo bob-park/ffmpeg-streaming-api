@@ -97,6 +97,14 @@ def test_video_bitrate_rejects_garbage():
             JobCreate(source_url="https://example.com/a.mp4", video_bitrate=bad)
 
 
+def test_video_bitrate_rejects_unicode_digits():
+    # Arabic-Indic digits match \d by default; re.ASCII flag must reject them
+    # so ffmpeg never receives a value it cannot parse.
+    for bad in ("1\u0660\u0660k", "\u0661000k", "1\u00b2M"):
+        with pytest.raises(ValidationError):
+            JobCreate(source_url="https://example.com/a.mp4", video_bitrate=bad)
+
+
 def test_video_height_range_and_parity():
     j = JobCreate(source_url="https://example.com/a.mp4", video_height=720)
     assert j.video_height == 720

@@ -138,6 +138,18 @@ def test_video_bitrate_k_suffix_doubles_bufsize():
     assert argv[argv.index("-bufsize") + 1] == "5000k"
 
 
+def test_video_bitrate_no_suffix_doubles_bufsize():
+    argv = build_ffmpeg_argv(
+        "https://example.com/a.mp4",
+        "/tmp/out",
+        StreamMode.VOD,
+        _settings(),
+        video_bitrate="800",
+    )
+    assert argv[argv.index("-b:v") + 1] == "800"
+    assert argv[argv.index("-bufsize") + 1] == "1600"
+
+
 def test_video_bitrate_none_omits_rate_control():
     argv = build_ffmpeg_argv(
         "https://example.com/a.mp4", "/tmp/out", StreamMode.VOD, _settings()

@@ -5,7 +5,7 @@ from uuid import UUID
 
 from pydantic import BaseModel, Field, field_validator, model_validator
 
-_BITRATE_RE = re.compile(r"^[1-9]\d{0,5}[kKmM]?$")
+_BITRATE_RE = re.compile(r"^[1-9][0-9]{0,5}[kKmM]?$", re.ASCII)
 
 
 class StreamMode(str, Enum):

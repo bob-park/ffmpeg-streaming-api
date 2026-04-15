@@ -83,6 +83,8 @@ async def create_job(
                 "mode": payload.mode.value,
                 "loop": payload.loop,
                 "realtime": payload.realtime,
+                "video_bitrate": payload.video_bitrate,
+                "video_height": payload.video_height,
             },
         )
     )
