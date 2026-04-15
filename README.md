@@ -87,7 +87,8 @@ curl -X DELETE http://localhost:8000/jobs/{id}
 모든 job의 상태 변경 이벤트 글로벌 스트림 (대시보드용).
 
 ### GET /streams/{id}/playlist.m3u8
-HLS 재생 URL. `ready` 이벤트 발행 후 재생 가능.
+HLS 재생 URL. `ready` 이벤트 발행 후 재생 가능. 클라이언트는 경로를 직접 조립하지 말고
+`JobRead.playlist_url` 필드를 사용하세요. `ready` 이전에는 `null` 입니다.
 
 ## 설정
 
@@ -111,9 +112,19 @@ HLS 재생 URL. `ready` 이벤트 발행 후 재생 가능.
 
 ## 개발
 
+이 프로젝트는 [uv](https://docs.astral.sh/uv/) 로 의존성을 관리합니다 (`uv.lock` 커밋됨).
+
 ```bash
-pip install -e ".[dev]"
+uv sync --extra dev
+uv run pytest
+uv run ruff check .
+uv run mypy src
+```
+
+또는 venv를 활성화해서 쓰셔도 됩니다:
+
+```bash
+uv sync --extra dev
+source .venv/bin/activate
 pytest
-ruff check .
-mypy src
 ```
