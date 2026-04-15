@@ -1,0 +1,34 @@
+.git
+.gitignore
+.github
+.vscode
+.idea
+.DS_Store
+
+# Python
+__pycache__
+*.py[cod]
+*.egg-info
+.pytest_cache
+.mypy_cache
+.ruff_cache
+.venv
+venv
+
+# Env / secrets
+.env
+.env.*
+!.env.example
+
+# Local runtime state (생성물)
+storage/
+run/
+*.log
+
+# 로컬 전용
+samples/
+tests/
+docker-compose.yml
+Dockerfile
+.dockerignore
+README.md

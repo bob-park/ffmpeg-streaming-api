@@ -1,0 +1,9 @@
+services:
+  ffmpeg-streaming-api:
+    image: ghcr.io/bob-park/ffmpeg-streaming-api
+    build:
+      dockerfile: ./Dockerfile
+      x-bake:
+        platforms:
+          - linux/amd64
+          - linux/arm64

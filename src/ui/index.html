@@ -1,0 +1,825 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1" />
+<title>transcoder-api</title>
+<style>
+  :root {
+    color-scheme: light dark;
+    --bg: #f7f7f8;
+    --panel: #fff;
+    --border: #e3e3e8;
+    --muted: #666;
+    --text: #111;
+    --accent: #2b6cb0;
+    --green: #16794c;
+    --blue: #2563eb;
+    --amber: #b45309;
+    --red: #b91c1c;
+    --gray: #6b7280;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --bg: #0f1115;
+      --panel: #171a20;
+      --border: #2a2e37;
+      --muted: #9aa0aa;
+      --text: #e6e8ea;
+      --accent: #5b9bd5;
+    }
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    font: 14px/1.4 -apple-system, BlinkMacSystemFont, "Segoe UI", system-ui, sans-serif;
+    background: var(--bg);
+    color: var(--text);
+  }
+  header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 14px 20px;
+    border-bottom: 1px solid var(--border);
+    background: var(--panel);
+  }
+  header h1 {
+    margin: 0;
+    font-size: 16px;
+    font-weight: 600;
+    letter-spacing: -0.01em;
+  }
+  header .stats {
+    font-size: 12px;
+    color: var(--muted);
+    font-variant-numeric: tabular-nums;
+  }
+  main {
+    max-width: 1100px;
+    margin: 0 auto;
+    padding: 20px;
+  }
+  .card {
+    background: var(--panel);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 16px;
+    margin-bottom: 16px;
+  }
+  .card h2 {
+    margin: 0 0 12px;
+    font-size: 13px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    color: var(--muted);
+  }
+  form.new-job {
+    display: grid;
+    grid-template-columns: 1fr 120px 100px auto;
+    gap: 8px;
+  }
+  .loop-row {
+    margin-top: 10px;
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    flex-wrap: wrap;
+    font-size: 13px;
+    color: var(--muted);
+  }
+  .loop-check { display: flex; align-items: center; gap: 6px; cursor: pointer; }
+  .loop-check input[disabled] + span { opacity: 0.5; }
+  .loop-window { display: flex; gap: 12px; flex-wrap: wrap; }
+  .loop-window label { display: flex; gap: 6px; align-items: center; }
+  .loop-window input[type="datetime-local"] {
+    padding: 4px 8px;
+    border-radius: 4px;
+    border: 1px solid var(--border);
+    background: var(--bg);
+    color: var(--text);
+    font: inherit;
+  }
+  input, select, button {
+    font: inherit;
+    padding: 8px 10px;
+    border-radius: 6px;
+    border: 1px solid var(--border);
+    background: var(--bg);
+    color: var(--text);
+  }
+  input:focus, select:focus {
+    outline: 2px solid var(--accent);
+    outline-offset: -1px;
+    border-color: var(--accent);
+  }
+  button {
+    background: var(--accent);
+    color: #fff;
+    border-color: var(--accent);
+    cursor: pointer;
+    font-weight: 500;
+  }
+  button:hover { opacity: 0.9; }
+  button:disabled { opacity: 0.5; cursor: not-allowed; }
+  table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 13px;
+  }
+  th, td {
+    text-align: left;
+    padding: 8px 10px;
+    border-bottom: 1px solid var(--border);
+  }
+  th {
+    font-size: 11px;
+    font-weight: 600;
+    text-transform: uppercase;
+    color: var(--muted);
+    letter-spacing: 0.05em;
+  }
+  tbody tr { cursor: pointer; }
+  tbody tr:hover { background: var(--bg); }
+  .badge {
+    display: inline-block;
+    padding: 2px 8px;
+    border-radius: 10px;
+    font-size: 11px;
+    font-weight: 500;
+    background: var(--bg);
+    border: 1px solid var(--border);
+  }
+  .b-scheduled { background: #ede9fe; color: #6d28d9; }
+  .b-queued   { background: #f1f5f9; color: var(--gray); }
+  .b-running  { background: #dbeafe; color: var(--blue); }
+  .b-ready    { background: #d1fae5; color: var(--green); }
+  .b-completed { background: #ecfdf5; color: var(--green); }
+  .b-failed   { background: #fee2e2; color: var(--red); }
+  .b-cancelled { background: #fef3c7; color: var(--amber); }
+  .b-expired  { background: #f1f5f9; color: var(--muted); }
+  .mono {
+    font-family: ui-monospace, "SF Mono", Menlo, Consolas, monospace;
+    font-size: 12px;
+  }
+  a { color: var(--accent); text-decoration: none; }
+  a:hover { text-decoration: underline; }
+  tr.expand td { background: var(--bg); padding: 12px 14px; font-size: 12px; }
+  .kv { display: grid; grid-template-columns: 120px 1fr; gap: 4px 12px; }
+  .kv dt { color: var(--muted); }
+  .kv dd { margin: 0; word-break: break-all; }
+  .toast-wrap {
+    position: fixed;
+    top: 12px;
+    right: 12px;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    z-index: 100;
+  }
+  .toast {
+    background: var(--panel);
+    border: 1px solid var(--border);
+    border-left: 3px solid var(--accent);
+    padding: 10px 14px;
+    border-radius: 6px;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+    font-size: 13px;
+    max-width: 360px;
+  }
+  .toast.err { border-left-color: var(--red); }
+  .toast.ok { border-left-color: var(--green); }
+  .empty {
+    padding: 40px;
+    text-align: center;
+    color: var(--muted);
+    font-size: 13px;
+  }
+  .dot {
+    display: inline-block;
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    margin-right: 6px;
+    background: var(--gray);
+  }
+  .dot.live { background: var(--green); box-shadow: 0 0 0 0 rgba(22,121,76,0.6); animation: pulse 2s infinite; }
+  @keyframes pulse {
+    0% { box-shadow: 0 0 0 0 rgba(22,121,76,0.6); }
+    70% { box-shadow: 0 0 0 6px rgba(22,121,76,0); }
+    100% { box-shadow: 0 0 0 0 rgba(22,121,76,0); }
+  }
+  .action-btn {
+    padding: 3px 10px;
+    font-size: 12px;
+    font-weight: 500;
+    border-radius: 4px;
+    border: 1px solid var(--border);
+    background: var(--bg);
+    color: var(--text);
+    cursor: pointer;
+  }
+  .action-btn:hover { opacity: 0.85; }
+  .action-btn.stop {
+    background: #fef3c7;
+    color: var(--amber);
+    border-color: #fde68a;
+  }
+  .action-btn.delete {
+    background: var(--bg);
+    color: var(--muted);
+  }
+  .action-btn.delete:hover {
+    background: #fee2e2;
+    color: var(--red);
+    border-color: #fecaca;
+  }
+  @media (prefers-color-scheme: dark) {
+    .action-btn.stop { background: #3f2e08; color: #fbbf24; border-color: #633e0a; }
+    .action-btn.delete:hover { background: #3b1414; color: #fca5a5; border-color: #5a1f1f; }
+  }
+  td.action-cell { text-align: right; padding-right: 14px; }
+  /* modal */
+  .modal-bg {
+    position: fixed;
+    inset: 0;
+    background: rgba(0,0,0,0.5);
+    display: none;
+    align-items: center;
+    justify-content: center;
+    z-index: 200;
+  }
+  .modal-bg.open { display: flex; }
+  .modal {
+    background: var(--panel);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 20px 22px;
+    max-width: 420px;
+    width: calc(100% - 40px);
+    box-shadow: 0 20px 40px rgba(0,0,0,0.3);
+  }
+  .modal h3 {
+    margin: 0 0 8px;
+    font-size: 15px;
+  }
+  .modal p {
+    margin: 0 0 16px;
+    color: var(--muted);
+    font-size: 13px;
+  }
+  .modal .mono { color: var(--text); }
+  .modal-buttons {
+    display: flex;
+    justify-content: flex-end;
+    gap: 8px;
+  }
+  .modal .btn-cancel {
+    background: var(--bg);
+    color: var(--text);
+    border: 1px solid var(--border);
+  }
+  .modal .btn-confirm {
+    background: var(--red);
+    border-color: var(--red);
+    color: #fff;
+  }
+  .modal .btn-confirm.warn {
+    background: var(--amber);
+    border-color: var(--amber);
+  }
+</style>
+</head>
+<body>
+<header>
+  <h1><span class="dot" id="sseDot"></span>transcoder-api</h1>
+  <div class="stats" id="stats">loading…</div>
+</header>
+<main>
+  <div class="card">
+    <h2>새 Job</h2>
+    <form class="new-job" id="newJobForm">
+      <input type="url" id="sourceUrl" placeholder="https://example.com/video.mp4" required />
+      <select id="mode">
+        <option value="vod">VOD</option>
+        <option value="live">Live</option>
+      </select>
+      <input type="number" id="ttl" placeholder="TTL (s)" min="60" max="86400" />
+      <button type="submit">Start</button>
+    </form>
+    <div class="loop-row">
+      <label class="loop-check">
+        <input type="checkbox" id="loop" disabled />
+        <span>Loop (live 모드에서만)</span>
+      </label>
+      <div class="loop-window" id="loopWindow" hidden>
+        <label>시작 <input type="datetime-local" id="startAt" /></label>
+        <label>종료 <input type="datetime-local" id="endAt" /></label>
+      </div>
+    </div>
+  </div>
+
+  <div class="card">
+    <h2>Jobs</h2>
+    <table>
+      <thead>
+        <tr>
+          <th>ID</th>
+          <th>Source</th>
+          <th>Mode</th>
+          <th>Status</th>
+          <th>Elapsed</th>
+          <th>Playlist</th>
+          <th></th>
+        </tr>
+      </thead>
+      <tbody id="jobsBody">
+        <tr><td colspan="7" class="empty">로딩 중…</td></tr>
+      </tbody>
+    </table>
+  </div>
+</main>
+<div class="toast-wrap" id="toasts"></div>
+
+<div class="modal-bg" id="modalBg">
+  <div class="modal">
+    <h3 id="modalTitle">정말?</h3>
+    <p id="modalBody">이 동작은 되돌릴 수 없어요.</p>
+    <div class="modal-buttons">
+      <button type="button" class="action-btn btn-cancel" id="modalCancel">취소</button>
+      <button type="button" class="action-btn btn-confirm" id="modalConfirm">확인</button>
+    </div>
+  </div>
+</div>
+
+<script>
+(function () {
+  const jobMap = new Map();          // single source of truth: job_id -> JobRead
+  const expandedRows = new Set();
+  let sseHealthy = false;
+  let sseErrCount = 0;
+  let pollTimer = null;
+  let es = null;
+
+  const $ = (sel) => document.querySelector(sel);
+  const jobsBody = $("#jobsBody");
+  const sseDot = $("#sseDot");
+  const stats = $("#stats");
+
+  function safeHref(url) {
+    if (!url) return "#";
+    if (url.startsWith("/")) return url;
+    try {
+      const u = new URL(url);
+      if (u.protocol === "http:" || u.protocol === "https:") return u.href;
+    } catch (e) {}
+    return "#";
+  }
+
+  function domainOf(url) {
+    try { return new URL(url).hostname; } catch (e) { return url; }
+  }
+
+  function fmtElapsed(job) {
+    if (!job.started_at) return "-";
+    const end = job.completed_at || new Date().toISOString();
+    const ms = new Date(end) - new Date(job.started_at);
+    if (ms < 0) return "-";
+    const s = Math.floor(ms / 1000);
+    if (s < 60) return s + "s";
+    const m = Math.floor(s / 60);
+    const r = s % 60;
+    return m + "m " + r + "s";
+  }
+
+  function toast(msg, kind) {
+    const el = document.createElement("div");
+    el.className = "toast" + (kind ? " " + kind : "");
+    el.textContent = msg;
+    $("#toasts").appendChild(el);
+    setTimeout(() => el.remove(), 5000);
+  }
+
+  function setCell(td, value) {
+    td.textContent = value == null ? "" : String(value);
+  }
+
+  function renderRow(job) {
+    const row = document.createElement("tr");
+    row.dataset.jobId = job.id;
+
+    const idTd = document.createElement("td");
+    idTd.className = "mono";
+    setCell(idTd, job.id.slice(0, 8));
+    row.appendChild(idTd);
+
+    const srcTd = document.createElement("td");
+    srcTd.className = "mono";
+    setCell(srcTd, domainOf(job.source_url));
+    row.appendChild(srcTd);
+
+    const modeTd = document.createElement("td");
+    const mb = document.createElement("span");
+    mb.className = "badge";
+    setCell(mb, job.loop ? job.mode + " ∞" : job.mode);
+    mb.title = job.loop ? "stream_loop enabled" : "";
+    modeTd.appendChild(mb);
+    row.appendChild(modeTd);
+
+    const stTd = document.createElement("td");
+    const sb = document.createElement("span");
+    sb.className = "badge b-" + job.status;
+    setCell(sb, job.status);
+    stTd.appendChild(sb);
+    row.appendChild(stTd);
+
+    const elTd = document.createElement("td");
+    setCell(elTd, fmtElapsed(job));
+    row.appendChild(elTd);
+
+    const plTd = document.createElement("td");
+    if (job.playlist_url) {
+      const a = document.createElement("a");
+      a.setAttribute("href", safeHref(job.playlist_url));
+      a.target = "_blank";
+      a.rel = "noopener";
+      setCell(a, "m3u8");
+      a.addEventListener("click", (e) => e.stopPropagation());
+      plTd.appendChild(a);
+    } else {
+      setCell(plTd, "-");
+    }
+    row.appendChild(plTd);
+
+    const actTd = document.createElement("td");
+    actTd.className = "action-cell";
+    const TERMINAL = new Set(["completed", "failed", "cancelled", "expired"]);
+    const ACTIVE = new Set(["scheduled", "queued", "running", "ready"]);
+    if (ACTIVE.has(job.status)) {
+      const btn = document.createElement("button");
+      btn.type = "button";
+      btn.className = "action-btn stop";
+      btn.textContent = "Stop";
+      btn.addEventListener("click", (e) => {
+        e.stopPropagation();
+        confirmStop(job);
+      });
+      actTd.appendChild(btn);
+    } else if (TERMINAL.has(job.status)) {
+      const btn = document.createElement("button");
+      btn.type = "button";
+      btn.className = "action-btn delete";
+      btn.textContent = "Delete";
+      btn.addEventListener("click", (e) => {
+        e.stopPropagation();
+        confirmDelete(job);
+      });
+      actTd.appendChild(btn);
+    }
+    row.appendChild(actTd);
+
+    row.addEventListener("click", () => toggleExpand(job.id));
+    return row;
+  }
+
+  function renderExpand(job) {
+    const row = document.createElement("tr");
+    row.className = "expand";
+    row.dataset.expandFor = job.id;
+    const td = document.createElement("td");
+    td.colSpan = 7;
+
+    const dl = document.createElement("dl");
+    dl.className = "kv";
+    const addKV = (k, v) => {
+      const dt = document.createElement("dt");
+      setCell(dt, k);
+      const dd = document.createElement("dd");
+      setCell(dd, v == null ? "-" : String(v));
+      dl.appendChild(dt);
+      dl.appendChild(dd);
+    };
+    addKV("id", job.id);
+    addKV("source_url", job.source_url);
+    addKV("created_at", job.created_at);
+    addKV("started_at", job.started_at);
+    addKV("ready_at", job.ready_at);
+    addKV("completed_at", job.completed_at);
+    addKV("expires_at", job.expires_at);
+    if (job.error) addKV("error", job.error);
+    td.appendChild(dl);
+    row.appendChild(td);
+    return row;
+  }
+
+  function toggleExpand(jobId) {
+    if (expandedRows.has(jobId)) expandedRows.delete(jobId);
+    else expandedRows.add(jobId);
+    renderAll();
+  }
+
+  function renderAll() {
+    jobsBody.replaceChildren();
+    const jobs = Array.from(jobMap.values());
+    jobs.sort((a, b) => new Date(b.created_at) - new Date(a.created_at));
+    if (jobs.length === 0) {
+      const tr = document.createElement("tr");
+      const td = document.createElement("td");
+      td.colSpan = 7;
+      td.className = "empty";
+      setCell(td, "Job이 아직 없어요.");
+      tr.appendChild(td);
+      jobsBody.appendChild(tr);
+    } else {
+      for (const j of jobs) {
+        jobsBody.appendChild(renderRow(j));
+        if (expandedRows.has(j.id)) jobsBody.appendChild(renderExpand(j));
+      }
+    }
+    updateStats();
+  }
+
+  function updateStats() {
+    const counts = { queued: 0, running: 0, ready: 0 };
+    for (const j of jobMap.values()) {
+      if (counts[j.status] !== undefined) counts[j.status]++;
+    }
+    setCell(
+      stats,
+      `queued: ${counts.queued}   running: ${counts.running}   ready: ${counts.ready}`
+    );
+  }
+
+  function upsert(job) {
+    jobMap.set(job.id, job);
+  }
+
+  async function fetchJobs() {
+    const r = await fetch("/jobs?status=scheduled,queued,running,ready,completed,failed,cancelled&limit=100");
+    if (!r.ok) throw new Error("list failed " + r.status);
+    return await r.json();
+  }
+
+  async function replaceAll() {
+    try {
+      const jobs = await fetchJobs();
+      jobMap.clear();
+      for (const j of jobs) upsert(j);
+      renderAll();
+    } catch (e) {
+      toast("목록 불러오기 실패: " + e.message, "err");
+    }
+  }
+
+  function handleEvent(ev) {
+    // ev: {type, job_id, ts, ...data}
+    if (ev.type === "snapshot" && Array.isArray(ev.jobs)) {
+      jobMap.clear();
+      for (const j of ev.jobs) upsert(j);
+      renderAll();
+      return;
+    }
+    const jid = ev.job_id;
+    if (!jid) return;
+    if (ev.type === "deleted") {
+      jobMap.delete(jid);
+      expandedRows.delete(jid);
+      renderAll();
+      return;
+    }
+    // For status-bearing events, refetch that single job to stay authoritative.
+    fetch("/jobs/" + jid).then((r) => {
+      if (r.status === 404) {
+        jobMap.delete(jid);
+        renderAll();
+        return null;
+      }
+      if (!r.ok) return null;
+      return r.json();
+    }).then((job) => {
+      if (job) {
+        upsert(job);
+        renderAll();
+      }
+    }).catch(() => {});
+  }
+
+  function startPolling() {
+    if (pollTimer) return;
+    pollTimer = setInterval(replaceAll, 3000);
+  }
+
+  function stopPolling() {
+    if (pollTimer) {
+      clearInterval(pollTimer);
+      pollTimer = null;
+    }
+  }
+
+  function connectSSE() {
+    if (es) { try { es.close(); } catch (e) {} }
+    es = new EventSource("/events");
+
+    es.onopen = () => {
+      sseHealthy = true;
+      sseErrCount = 0;
+      sseDot.classList.add("live");
+      stopPolling();
+    };
+
+    es.onerror = () => {
+      sseHealthy = false;
+      sseErrCount++;
+      sseDot.classList.remove("live");
+      if (sseErrCount >= 3) startPolling();
+    };
+
+    // All event types land in onmessage OR in custom event listeners.
+    // Using the custom "snapshot" event and handling the rest via generic listener.
+    const handler = (e) => {
+      try {
+        const data = JSON.parse(e.data);
+        handleEvent(data);
+      } catch (err) {}
+    };
+    ["snapshot", "created", "status_change", "ready", "completed", "error", "deleted"].forEach((t) => {
+      es.addEventListener(t, handler);
+    });
+  }
+
+  // --- Confirm modal ------------------------------------------------------
+  const modalBg = $("#modalBg");
+  const modalTitle = $("#modalTitle");
+  const modalBody = $("#modalBody");
+  const modalConfirm = $("#modalConfirm");
+  const modalCancel = $("#modalCancel");
+  let modalHandler = null;
+
+  function openModal({ title, body, confirmText, kind, onConfirm }) {
+    setCell(modalTitle, title);
+    setCell(modalBody, body);
+    setCell(modalConfirm, confirmText || "확인");
+    modalConfirm.classList.toggle("warn", kind === "warn");
+    modalHandler = onConfirm;
+    modalBg.classList.add("open");
+  }
+  function closeModal() {
+    modalBg.classList.remove("open");
+    modalHandler = null;
+  }
+  modalCancel.addEventListener("click", closeModal);
+  modalBg.addEventListener("click", (e) => {
+    if (e.target === modalBg) closeModal();
+  });
+  modalConfirm.addEventListener("click", async () => {
+    const fn = modalHandler;
+    closeModal();
+    if (fn) await fn();
+  });
+  document.addEventListener("keydown", (e) => {
+    if (e.key === "Escape" && modalBg.classList.contains("open")) closeModal();
+  });
+
+  function confirmStop(job) {
+    openModal({
+      title: "Job 중지",
+      body: `실행 중인 job ${job.id.slice(0, 8)}을 중지할까요? 중지는 되돌릴 수 없어요 (세그먼트는 남아요).`,
+      confirmText: "Stop",
+      kind: "warn",
+      onConfirm: () => stopJob(job.id),
+    });
+  }
+
+  function confirmDelete(job) {
+    openModal({
+      title: "Job 삭제",
+      body: `Job ${job.id.slice(0, 8)}과 모든 HLS 세그먼트를 완전히 삭제해요. 되돌릴 수 없어요.`,
+      confirmText: "Delete",
+      kind: "danger",
+      onConfirm: () => deleteJob(job.id),
+    });
+  }
+
+  async function stopJob(jobId) {
+    try {
+      const r = await fetch("/jobs/" + jobId + "/cancel", { method: "POST" });
+      if (r.ok) {
+        toast("중지 요청 전송", "ok");
+      } else if (r.status === 409) {
+        toast("이미 종료된 job이에요", "err");
+      } else if (r.status === 404) {
+        toast("Job을 찾을 수 없어요", "err");
+      } else {
+        toast("중지 실패 " + r.status, "err");
+      }
+    } catch (err) {
+      toast("네트워크 에러: " + err.message, "err");
+    }
+  }
+
+  async function deleteJob(jobId) {
+    try {
+      const r = await fetch("/jobs/" + jobId, { method: "DELETE" });
+      if (r.status === 204) {
+        // Optimistically remove immediately; SSE "deleted" event will confirm.
+        jobMap.delete(jobId);
+        expandedRows.delete(jobId);
+        renderAll();
+        toast("삭제 완료", "ok");
+      } else if (r.status === 409) {
+        toast("아직 실행 중이에요 — 먼저 Stop 하세요", "err");
+      } else if (r.status === 404) {
+        toast("Job을 찾을 수 없어요", "err");
+      } else {
+        toast("삭제 실패 " + r.status, "err");
+      }
+    } catch (err) {
+      toast("네트워크 에러: " + err.message, "err");
+    }
+  }
+
+  // Loop form wiring — only enabled when mode=live.
+  const modeSel = $("#mode");
+  const loopChk = $("#loop");
+  const loopWindow = $("#loopWindow");
+  const startAtInput = $("#startAt");
+  const endAtInput = $("#endAt");
+
+  function syncLoopUI() {
+    const canLoop = modeSel.value === "live";
+    loopChk.disabled = !canLoop;
+    if (!canLoop) loopChk.checked = false;
+    loopWindow.hidden = !loopChk.checked;
+  }
+  modeSel.addEventListener("change", syncLoopUI);
+  loopChk.addEventListener("change", syncLoopUI);
+  syncLoopUI();
+
+  function toIsoOrNull(localValue) {
+    if (!localValue) return null;
+    // datetime-local gives local time without tz; interpret as local and convert to UTC ISO.
+    const d = new Date(localValue);
+    if (isNaN(d.getTime())) return null;
+    return d.toISOString();
+  }
+
+  $("#newJobForm").addEventListener("submit", async (e) => {
+    e.preventDefault();
+    const source_url = $("#sourceUrl").value.trim();
+    const mode = modeSel.value;
+    const ttlRaw = $("#ttl").value;
+    const body = { source_url, mode };
+    if (ttlRaw) body.ttl_seconds = parseInt(ttlRaw, 10);
+    if (loopChk.checked) {
+      body.loop = true;
+      const startIso = toIsoOrNull(startAtInput.value);
+      const endIso = toIsoOrNull(endAtInput.value);
+      if (startIso) body.start_at = startIso;
+      if (endIso) body.end_at = endIso;
+    }
+
+    const btn = e.target.querySelector("button");
+    btn.disabled = true;
+    try {
+      const r = await fetch("/jobs", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(body),
+      });
+      const payload = await r.json().catch(() => ({}));
+      if (r.ok) {
+        toast("Job 제출 완료: " + (payload.id || "").slice(0, 8), "ok");
+        $("#sourceUrl").value = "";
+      } else if (r.status === 400) {
+        toast("URL 거부됨: " + (payload.detail?.code || "invalid"), "err");
+      } else if (r.status === 503) {
+        toast("큐가 꽉 참 — 잠시 후 다시", "err");
+      } else {
+        toast("실패 " + r.status, "err");
+      }
+    } catch (err) {
+      toast("네트워크 에러: " + err.message, "err");
+    } finally {
+      btn.disabled = false;
+    }
+  });
+
+  // Initial load + live updates
+  replaceAll().then(() => connectSSE());
+
+  // Tick elapsed times every second
+  setInterval(() => {
+    for (const row of jobsBody.querySelectorAll("tr[data-job-id]")) {
+      const jid = row.dataset.jobId;
+      const job = jobMap.get(jid);
+      if (job && (job.status === "running" || job.status === "ready")) {
+        const td = row.children[4];
+        if (td) setCell(td, fmtElapsed(job));
+      }
+    }
+  }, 1000);
+})();
+</script>
+</body>
+</html>
